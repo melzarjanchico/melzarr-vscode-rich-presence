@@ -5,6 +5,7 @@ A small VS Code extension that reports what you're working on to a personal pres
 ## Features
 
 - **Automatic presence reporting** — on startup the extension begins sending a heartbeat every 30 seconds to your presence API, so the reported state stays fresh even while you sit on the same file.
+- **On/off toggle** — a status bar button on the right shows `Presence` when active and `Presence` struck through when not. Click it to start or stop all API calls, or run **VS Code Presence: Toggle Presence On/Off** from the Command Palette. The choice is saved in your settings and survives reloads; turning it off clears the heartbeat timer rather than merely skipping sends.
 - **Activity-based status** — each heartbeat is classified as:
 
   | Status    | Meaning                                                              |
@@ -63,11 +64,13 @@ Presence is only sent while a workspace is open and a text editor is active. Thi
 
 ## Extension Settings
 
+- `melzarrPresence.enabled` — Whether heartbeats are sent. Defaults to `true`. Equivalent to the status bar toggle; changing it in the Settings UI takes effect immediately.
 - `melzarrPresence.apiBaseUrl` — Base URL of the presence API. Defaults to `https://melzar-api.vercel.app`. Point it at `http://localhost:3000` to use a locally running API.
 
 ## Commands
 
 - **VS Code Presence: Set API Token** (`melzarrPresence.setApiToken`) — Prompts for the API token and stores it securely. Re-run it at any time to replace the stored token.
+- **VS Code Presence: Toggle Presence On/Off** (`melzarrPresence.toggle`) — Turns heartbeat sending on or off and updates the status bar button.
 
 ## API payload
 

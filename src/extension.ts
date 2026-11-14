@@ -28,10 +28,102 @@ let currentFileKey = '';
 let startedAtFile = Date.now();
 let isSending = false;
 let tokenPromptShown = false;
+let heartbeat: ReturnType<typeof setInterval> | undefined;
+let statusBarItem: vscode.StatusBarItem | undefined;
+
+function isEnabled(): boolean {
+    return vscode.workspace
+        .getConfiguration('melzarrPresence')
+        .get<boolean>('enabled', true);
+}
+
+function startHeartbeat(context: vscode.ExtensionContext) {
+    stopHeartbeat();
+
+    // Report immediately so the toggle takes effect without waiting 30s.
+    void sendPresence(context);
+
+    heartbeat = setInterval(() => {
+        void sendPresence(context);
+    }, HEARTBEAT_INTERVAL);
+}
+
+function stopHeartbeat() {
+    if (heartbeat) {
+        clearInterval(heartbeat);
+        heartbeat = undefined;
+    }
+}
+
+function updateStatusBar() {
+    if (!statusBarItem) {
+        return;
+    }
+
+    const enabled = isEnabled();
+
+    statusBarItem.text = enabled
+        ? '$(circle-filled) Presence'
+        : '$(circle-slash) Presence';
+    statusBarItem.tooltip = enabled
+        ? 'VS Code Presence is on — click to turn it off'
+        : 'VS Code Presence is off — click to turn it on';
+    statusBarItem.show();
+}
 
 export function activate(context: vscode.ExtensionContext) {
     console.log(
         'Congratulations, your extension "melzarr-vscode-rich-presence" is now active!'
+    );
+
+    statusBarItem = vscode.window.createStatusBarItem(
+        vscode.StatusBarAlignment.Right,
+        100
+    );
+    statusBarItem.command = 'melzarrPresence.toggle';
+
+    const toggleCommand = vscode.commands.registerCommand(
+        'melzarrPresence.toggle',
+        async (value?: unknown) => {
+            // A boolean argument comes from the keybinding form
+            // (e.g. `toggle = !config.melzarrPresence.enabled`); otherwise flip.
+            const next =
+                typeof value === 'boolean' ? value : !isEnabled();
+
+            await vscode.workspace
+                .getConfiguration('melzarrPresence')
+                .update(
+                    'enabled',
+                    next,
+                    vscode.ConfigurationTarget.Global
+                );
+
+            updateStatusBar();
+
+            vscode.window.setStatusBarMessage(
+                next
+                    ? 'VS Code Presence turned on.'
+                    : 'VS Code Presence turned off.',
+                3_000
+            );
+        }
+    );
+
+    const configListener = vscode.workspace.onDidChangeConfiguration(
+        (event) => {
+            if (!event.affectsConfiguration('melzarrPresence.enabled')) {
+                return;
+            }
+
+            // Respect changes made from the Settings UI as well as the toggle.
+            if (isEnabled()) {
+                startHeartbeat(context);
+            } else {
+                stopHeartbeat();
+            }
+
+            updateStatusBar();
+        }
     );
 
     const setTokenCommand = vscode.commands.registerCommand(
@@ -82,20 +174,19 @@ export function activate(context: vscode.ExtensionContext) {
 
     context.subscriptions.push(
         setTokenCommand,
+        toggleCommand,
+        configListener,
         documentChangeListener,
         activeEditorListener,
-        selectionListener
+        selectionListener,
+        statusBarItem
     );
 
-    void sendPresence(context);
+    updateStatusBar();
 
-    const heartbeat = setInterval(() => {
-        void sendPresence(context);
-    }, HEARTBEAT_INTERVAL);
-
-    context.subscriptions.push({
-        dispose: () => clearInterval(heartbeat),
-    });
+    if (isEnabled()) {
+        startHeartbeat(context);
+    }
 }
 
 async function sendPresence(context: vscode.ExtensionContext) {
@@ -243,4 +334,6 @@ function getRelativeFilePath(
     );
 }
 
-export function deactivate() {}
+export function deactivate() {
+    stopHeartbeat();
+}

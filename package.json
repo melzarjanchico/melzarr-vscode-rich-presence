@@ -3,6 +3,7 @@
   "displayName": "melzarr-vscode-rich-presence",
   "description": "Shows whether I'm doing building in VSCode",
   "version": "0.0.1",
+  "publisher": "melzarjanchico",
   "repository": {
     "type": "git",
     "url": "https://github.com/melzarjanchico/melzarr-vscode-rich-presence.git"
@@ -19,11 +20,21 @@
           {
               "command": "melzarrPresence.setApiToken",
               "title": "VS Code Presence: Set API Token"
+          },
+          {
+              "command": "melzarrPresence.toggle",
+              "title": "VS Code Presence: Toggle Presence On/Off",
+              "category": "VS Code Presence"
           }
       ],
       "configuration": {
           "title": "Melzarr VS Code Presence",
           "properties": {
+              "melzarrPresence.enabled": {
+                  "type": "boolean",
+                  "default": true,
+                  "description": "Send presence heartbeats to the API. Turn off to stop all API calls; toggle from the status bar or with the \"VS Code Presence: Toggle Presence On/Off\" command."
+              },
               "melzarrPresence.apiBaseUrl": {
                   "type": "string",
                   "default": "https://melzar-api.vercel.app",
